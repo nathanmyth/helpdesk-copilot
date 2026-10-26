@@ -7,7 +7,9 @@
 ![Demo GIF placeholder](docs/assets/demo.gif)
 <!-- TODO: record a 15-second GIF of the Streamlit app and replace this -->
 
-**🔗 Live demo:** _TODO: add Streamlit Community Cloud / Hugging Face Spaces link_
+**🔗 Try it in your browser:** [nathanmyth.github.io/helpdesk-copilot/demo](https://nathanmyth.github.io/helpdesk-copilot/demo/) — runs the retrieval step and guardrail live, no setup needed.
+
+**🔗 Full app (LLM answers):** _TODO: add Streamlit Community Cloud link_
 
 ---
 
@@ -86,6 +88,7 @@ Retrieval works without an API key (`python -m src.cli --retrieve-only "..."`), 
 │   ├── pipeline.py        # retrieve → prompt → answer
 │   └── cli.py
 ├── data/docs/             # sample knowledge base (fictional company)
+├── demo/index.html        # in-browser retrieval demo (GitHub Pages)
 ├── eval/                  # test set + evaluation harness
 ├── tests/                 # unit tests (no API key needed)
 ├── docs/                  # program artifacts
