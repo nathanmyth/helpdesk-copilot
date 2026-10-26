@@ -100,4 +100,4 @@ Work is tracked with GitHub **Issues**, **Milestones** (M1–M4, matching [the p
 
 ## About me
 
-_TODO: one or two lines — "AI Technical Program Manager focused on taking LLM products from prototype to production." + LinkedIn link._
+Built by **Senthilnathan Abboy Selvaraj**, AI Technical Program Manager. [LinkedIn](https://www.linkedin.com/in/senthilnathanas) · [More projects](https://github.com/nathanmyth)
