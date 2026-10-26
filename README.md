@@ -4,8 +4,7 @@
 
 > 📌 **Portfolio note:** This project demonstrates end-to-end AI program management: problem framing, architecture trade-offs, evaluation-driven quality gates, risk management, and launch readiness. The `docs/` folder is as important as the code.
 
-![Demo GIF placeholder](docs/assets/demo.gif)
-<!-- TODO: record a 15-second GIF of the Streamlit app and replace this -->
+![HelpDesk Copilot demo: answering IT questions with cited sources, and escalating an off-topic question](docs/assets/demo.gif)
 
 **🔗 Try it in your browser:** [nathanmyth.github.io/helpdesk-copilot/demo](https://nathanmyth.github.io/helpdesk-copilot/demo/) — runs the retrieval step and guardrail live, no setup needed.
 
