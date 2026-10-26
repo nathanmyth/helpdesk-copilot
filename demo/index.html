@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HelpDesk Copilot Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single service-desk console column — ask bar, answer ticket, retrieval trace beside it on wide screens */
+:root {
+  --bg: #f3f5f8; --surface: #ffffff; --fg: #1a2230; --muted: #5d6879;
+  --line: #dde2ea; --accent: #2457c5; --accent-soft: #e6edfb;
+  --ok: #1f7a4d; --ok-soft: #e3f3ea; --warn: #9a5b00; --warn-soft: #fbf0dc;
+  --f-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11151c; --surface: #191f29; --fg: #e4e8ef; --muted: #98a2b3;
+  --line: #2a3240; --accent: #7aa2ff; --accent-soft: #1d2a47;
+  --ok: #5fcf95; --ok-soft: #16301f; --warn: #f0b45a; --warn-soft: #34270f; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #11151c; --surface: #191f29; --fg: #e4e8ef; --muted: #98a2b3;
+  --line: #2a3240; --accent: #7aa2ff; --accent-soft: #1d2a47;
+  --ok: #5fcf95; --ok-soft: #16301f; --warn: #f0b45a; --warn-soft: #34270f; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 48px; }
+.wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
+h1 { font-size: 1.6rem; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.org { font-family: var(--f-mono); font-size: 0.78rem; color: var(--muted); }
+.note { font-size: 0.86rem; color: var(--muted); margin: 0; max-width: 70ch; }
+
+form { display: flex; gap: 8px; }
+#q { flex: 1; min-width: 0; font: inherit; font-size: 1rem; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--fg); }
+#q:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ask { font: inherit; font-weight: 600; padding: 0 20px; border: 0; border-radius: 8px; background: var(--accent); color: var(--surface); cursor: pointer; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: inherit; font-size: 0.82rem; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; }
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip.oos { border-style: dashed; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 20px; align-items: start; }
+@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+.ticket { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 12px; min-width: 0; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; width: fit-content; }
+.status.ok { background: var(--ok-soft); color: var(--ok); }
+.status.esc { background: var(--warn-soft); color: var(--warn); }
+.asked { font-weight: 600; font-size: 1.05rem; margin: 0; }
+.answer h3 { margin: 0 0 4px; font-size: 0.95rem; }
+.answer p { margin: 0; max-width: 65ch; }
+.sources { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; }
+.sources code, .trace code { font-family: var(--f-mono); font-size: 0.8rem; }
+
+.trace { display: grid; gap: 10px; min-width: 0; }
+.trace h2 { font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.hit { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.hit-top { display: flex; justify-content: space-between; gap: 10px; font-size: 0.85rem; }
+.hit-top span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.score { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.bar { height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); }
+.hit.below .bar i { background: var(--muted); }
+.hit.below { opacity: 0.6; }
+.threshold { font-size: 0.8rem; color: var(--muted); }
+footer { font-size: 0.82rem; color: var(--muted); }
+footer a { color: var(--accent); }
+@media (prefers-reduced-motion: no-preference) { .bar i { transition: width .3s ease; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>HelpDesk Copilot</h1>
+    <span class="org">Northwind Labs IT · sample knowledge base · 5 docs</span>
+  </header>
+  <p class="note">Ask an IT question. This browser demo runs the project's retrieval step and the "no relevant docs" guardrail live. It shows the best-matching passage as the answer; the full app sends these passages to an LLM to write a short, cited reply.</p>
+
+  <form id="f">
+    <label for="q" hidden>Your IT question</label>
+    <input id="q" autocomplete="off" placeholder="e.g. How do I set up MFA on a new phone?" value="How do I reset my VPN password?">
+    <button class="ask" type="submit">Ask</button>
+  </form>
+  <div class="chips" id="chips"></div>
+
+  <div class="grid">
+    <section class="ticket" id="ticket" aria-live="polite"></section>
+    <aside class="trace">
+      <h2>Retrieval trace · top 3</h2>
+      <div id="hits"></div>
+      <div class="threshold">Guardrail: passages scoring below <code>0.12</code> are dropped. If none remain, the LLM is never called.</div>
+    </aside>
+  </div>
+
+  <footer>Source code, eval set, and program docs: <a href="https://github.com/nathanmyth/helpdesk-copilot">github.com/nathanmyth/helpdesk-copilot</a></footer>
+</div>
+
+<script>
+const DOCS = {"accounts-and-mfa.md": "# Accounts and Multi-Factor Authentication (MFA)\n\n_Fictional sample document for Northwind Labs. Last updated: 2026-08-30._\n\n## Password requirements\nPasswords must be at least 14 characters and are changed every 180 days. You will get an email reminder 14 days before your password expires. Never share your password with anyone, including IT staff. IT will never ask for your password.\n\n## Account locked out\nYour account locks after 5 failed sign-in attempts. It unlocks automatically after 30 minutes, or you can unlock it immediately at password.northwind.example using your MFA device.\n\n## Setting up MFA on a new phone\nInstall the Authenticator app on the new phone. On a company laptop, go to myaccount.northwind.example, open Security Info, choose \"Add sign-in method\", and scan the QR code with the new phone. Remove the old phone from Security Info once the new one works.\n\n## Lost or stolen phone\nIf you lose the phone with your MFA app, call the IT Service Desk immediately at extension 4357 so your MFA methods can be reset and your sessions revoked. Do not wait until the next business day.\n", "devices.md": "# Laptops and Devices\n\n_Fictional sample document for Northwind Labs. Last updated: 2026-07-20._\n\n## New laptop setup\nNew laptops arrive pre-configured. Power on, connect to Wi-Fi, and sign in with your company email. Setup installs required apps automatically and takes about 45 minutes; keep the laptop plugged in.\n\n## Laptop replacement\nLaptops are replaced every 4 years. If your laptop is damaged or failing earlier, file a Hardware Issue ticket in the IT Service Portal. Back up your work to OneDrive before any replacement; local files are not migrated.\n\n## Printing\nOffice printers are added automatically on company laptops. Send jobs to \"Northwind-Secure-Print\", then tap your badge on any printer to release them. Unreleased jobs are deleted after 24 hours.\n\n## Wi-Fi in the office\nConnect company laptops to the \"Northwind-Corp\" network; it signs in automatically with your device certificate. Guests and personal devices use \"Northwind-Guest\", which requires a daily access code from reception.\n", "security-policy.md": "# Security Policy Highlights\n\n_Fictional sample document for Northwind Labs. Last updated: 2026-09-01._\n\n## Reporting phishing\nIf you receive a suspicious email, do not click links or open attachments. Use the \"Report Phishing\" button in Outlook. If you already clicked a link or entered your password, reset your password immediately and call the IT Service Desk at extension 4357.\n\n## Data storage\nCompany data must be stored in OneDrive, SharePoint, or approved systems. Do not store company data on personal cloud storage such as personal Dropbox or Google Drive accounts, or on USB drives.\n\n## USB drives\nUSB storage devices are blocked on company laptops. To share large files, use a OneDrive sharing link with an expiration date.\n\n## Working from public places\nOn public Wi-Fi, always connect to the VPN before accessing company systems. Lock your screen (Windows + L or Control + Command + Q) whenever you step away.\n", "software.md": "# Software Requests\n\n_Fictional sample document for Northwind Labs. Last updated: 2026-10-01._\n\n## Installing approved software\nMost approved applications (browsers, Zoom, Slack, VS Code, Python) can be installed without a ticket from the Software Center app on your company laptop. Open Software Center, search for the application, and click Install.\n\n## Requesting new software\nSoftware that is not in the Software Center needs approval. Submit a Software Request form in the IT Service Portal with the software name, business reason, and your manager's name. Security reviews new software within 5 business days. Software that processes customer data also needs a privacy review.\n\n## Admin rights\nEmployees do not have local administrator rights on company laptops. Do not attempt to bypass this restriction. Developers who need elevated rights can request a time-limited admin session through the IT Service Portal; sessions last 60 minutes.\n\n## Browser extensions\nOnly extensions on the approved list can be installed in Chrome and Edge. Unapproved extensions are removed automatically.\n", "vpn.md": "# VPN Access\n\n_Fictional sample document for Northwind Labs. Last updated: 2026-09-15._\n\n## Connecting to the VPN\nNorthwind Labs uses GlobalConnect VPN. Open the GlobalConnect app, enter the portal address vpn.northwind.example, and sign in with your company email and password. Approve the MFA push notification on your phone to finish connecting.\n\n## Resetting your VPN password\nYour VPN password is the same as your company single sign-on (SSO) password. To reset it, go to the self-service password portal at password.northwind.example, choose \"Forgot password\", and verify with your MFA device. The new password works on the VPN within 5 minutes.\n\n## VPN keeps disconnecting\nFrequent disconnects are usually caused by unstable Wi-Fi or an outdated client. Update GlobalConnect to the latest version from the Software Center, switch to a wired or stronger network, and restart the app. If disconnects continue for more than a day, file a ticket and include the time of each disconnect.\n\n## VPN on personal devices\nPersonal devices may not connect to the VPN. Only company-managed laptops are allowed, per the Acceptable Use Policy.\n"};
+const MIN_SCORE = 0.12, TOP_K = 3;
+const FALLBACK = "I couldn't find this in the IT knowledge base. Please file a ticket at the IT Service Portal and a support engineer will help.";
+const EXAMPLES = [
+  ["How do I set up MFA on a new phone?", false],
+  ["Can I get admin rights on my laptop?", false],
+  ["I lost my phone with the authenticator app", false],
+  ["How do I print in the office?", false],
+  ["I got a suspicious email", false],
+  ["Who won the 1998 World Cup final?", true],
+];
+const STOP = new Set("a about above after again against all am an and any are as at be because been before being below between both but by can could did do does doing down during each few for from further had has have having he her here hers him his how i if in into is it its itself just me more most my no nor not now of off on once only or other our out over own same she should so some such than that the their them then there these they this those through to too under until up very was we were what when where which while who whom why will with would you your yours".split(" "));
+
+// Chunk by section, prefixing the heading (mirrors src/ingest.py)
+const chunks = [];
+for (const [name, text] of Object.entries(DOCS)) {
+  let heading = "Introduction", lines = [];
+  const flush = () => { const body = lines.join("\n").trim(); if (body) chunks.push({ source: name, section: heading, body, text: heading + "\n" + body }); };
+  for (const line of text.split("\n")) { if (line.startsWith("#")) { flush(); heading = line.replace(/^#+/, "").trim(); lines = []; } else lines.push(line); }
+  flush();
+}
+
+// TF-IDF with unigrams + bigrams, sublinear tf, smoothed idf, L2 norm (mirrors src/retriever.py)
+const tokens = s => { const w = (s.toLowerCase().match(/\b\w\w+\b/g) || []).filter(t => !STOP.has(t)); const out = [...w]; for (let i = 0; i < w.length - 1; i++) out.push(w[i] + " " + w[i + 1]); return out; };
+const df = new Map();
+const tfs = chunks.map(c => { const m = new Map(); for (const t of tokens(c.text)) m.set(t, (m.get(t) || 0) + 1); for (const t of m.keys()) df.set(t, (df.get(t) || 0) + 1); return m; });
+const N = chunks.length, idf = t => Math.log((1 + N) / (1 + (df.get(t) || 0))) + 1;
+const vec = m => { const v = new Map(); let n = 0; for (const [t, c] of m) { if (!df.has(t)) continue; const x = (1 + Math.log(c)) * idf(t); v.set(t, x); n += x * x; } n = Math.sqrt(n) || 1; for (const [t, x] of v) v.set(t, x / n); return v; };
+const vecs = tfs.map(vec);
+function search(q) {
+  const m = new Map(); for (const t of tokens(q)) m.set(t, (m.get(t) || 0) + 1);
+  const qv = vec(m);
+  return vecs.map((v, i) => { let s = 0; for (const [t, x] of qv) s += x * (v.get(t) || 0); return { c: chunks[i], s }; }).sort((a, b) => b.s - a.s).slice(0, TOP_K);
+}
+
+const esc = s => s.replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+function ask(q) {
+  q = q.trim(); if (!q) return;
+  const top = search(q), hits = top.filter(h => h.s >= MIN_SCORE);
+  const ticket = document.getElementById("ticket");
+  if (hits.length) {
+    const best = hits[0].c;
+    ticket.innerHTML = `<span class="status ok">Answered from docs</span><p class="asked">${esc(q)}</p>
+      <div class="answer"><h3>${esc(best.section)}</h3><p>${esc(best.body)}</p></div>
+      <div class="sources">Sources: ${[...new Set(hits.map(h => h.c.source))].map(s => `<code>${esc(s)}</code>`).join(", ")}</div>`;
+  } else {
+    ticket.innerHTML = `<span class="status esc">Escalated to a ticket</span><p class="asked">${esc(q)}</p>
+      <div class="answer"><p>${esc(FALLBACK)}</p></div>
+      <div class="sources">No passage cleared the guardrail, so no model call was made (cost: $0).</div>`;
+  }
+  const max = Math.max(top[0]?.s || 0, 0.5);
+  document.getElementById("hits").innerHTML = top.map(h => `<div class="hit ${h.s < MIN_SCORE ? "below" : ""}">
+      <div class="hit-top"><span><code>${esc(h.c.source)}</code> · ${esc(h.c.section)}</span><span class="score">${h.s.toFixed(2)}</span></div>
+      <div class="bar"><i style="width:${Math.min(100, h.s / max * 100).toFixed(0)}%"></i></div></div>`).join("");
+}
+
+const chipsEl = document.getElementById("chips");
+for (const [q, oos] of EXAMPLES) {
+  const b = document.createElement("button"); b.type = "button"; b.className = "chip" + (oos ? " oos" : ""); b.textContent = q;
+  if (oos) b.title = "Out of scope: shows the guardrail";
+  b.onclick = () => { document.getElementById("q").value = q; ask(q); };
+  chipsEl.appendChild(b);
+}
+document.getElementById("f").addEventListener("submit", e => { e.preventDefault(); ask(document.getElementById("q").value); });
+ask(document.getElementById("q").value);
+</script>
+</body>
+</html>
